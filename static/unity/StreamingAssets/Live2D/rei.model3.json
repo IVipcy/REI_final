@@ -1,0 +1,78 @@
+{
+	"Version": 3,
+	"FileReferences": {
+		"Moc": "REI.moc3",
+		"Textures": [
+			"REI.2048/texture_00.png"
+		],
+		"Physics": "REI.physics3.json",
+		"DisplayInfo": "REI.cdi3.json",
+		"Motions": {
+			"": [
+				{
+					"File": "Motion/Angry.motion3.json",
+					"FadeInTime": 0.5,
+					"FadeOutTime": 0.5
+				},
+				{
+					"File": "Motion/DangerQuestion.motion3.json",
+					"FadeInTime": 0.5,
+					"FadeOutTime": 0.5
+				},
+				{
+					"File": "Motion/Happy.motion3.json",
+					"FadeInTime": 0.5,
+					"FadeOutTime": 0.5
+				},
+				{
+					"File": "Motion/Neutral.motion3.json",
+					"FadeInTime": 0.5,
+					"FadeOutTime": 0.5
+				},
+				{
+					"File": "Motion/NeutralTalikng.motion3.json",
+					"FadeInTime": 0.5,
+					"FadeOutTime": 0.5
+				},
+				{
+					"File": "Motion/ResposeReady.motion3.json",
+					"FadeInTime": 0.5,
+					"FadeOutTime": 0.5
+				},
+				{
+					"File": "Motion/Sad.motion3.json",
+					"FadeInTime": 0.5,
+					"FadeOutTime": 0.5
+				},
+				{
+					"File": "Motion/Start.motion3.json",
+					"FadeInTime": 0.5,
+					"FadeOutTime": 0.5
+				},
+				{
+					"File": "Motion/Surprise.motion3.json",
+					"FadeInTime": 0.5,
+					"FadeOutTime": 0.5
+				}
+			]
+		}
+	},
+	"Groups": [
+		{
+			"Target": "Parameter",
+			"Name": "EyeBlink",
+			"Ids": [
+				"ParamEyeLOpen",
+				"ParamEyeROpen"
+			]
+		},
+		{
+			"Target": "Parameter",
+			"Name": "LipSync",
+			"Ids": [
+				"ParamMouthOpenY"
+			]
+		}
+	],
+	"HitAreas": []
+}
