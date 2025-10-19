@@ -23,6 +23,7 @@ click==8.1.7
 # HTTP通信
 requests==2.31.0
 urllib3==2.0.7
+httpx==0.27.0
 
 # AI/機械学習（最新安定版で互換性向上）
 openai==1.54.5
