@@ -566,7 +566,7 @@ def get_relationship_adjusted_greeting(language, relationship_style):
     """関係性レベルに応じた挨拶を生成"""
     greetings = {
         'ja': {
-            'formal': "はじめまして！手描き京友禅職人のふたばです！私は挿し友禅という工程を専門にしています。何でも質問してくださいね！",
+            'formal': "はじめまして！手描き京友禅職人のレイです！私は糸目のり置きという工程を専門にしています。何でも質問してくださいね！",
             'polite': "こんにちは!また会えて嬉しいです。今日はどんなお話をしましょうか?",
             'friendly': "やっほー!会いたかったよ〜!今日も楽しくお話しようね!",
             'casual': "おっす!元気にしてた?なんか面白い話ある?"
@@ -1310,7 +1310,7 @@ def handle_connect():
         if session_data[session_id]['first_interaction']:
             try:
                 # 自己紹介メッセージ
-                intro_message = "はじめまして！手描き京友禅職人のふたばです！私は挿し友禅という工程を専門にしています。何でも質問してくださいね！"
+                intro_message = "はじめまして！手描き京友禅職人のレイです！私は糸目のりおきという工程を専門にしています。何でも質問してくださいね！"
                 intro_emotion = 'start'  # Startモーション使用
                 
                 # 感情を検証
