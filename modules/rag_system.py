@@ -219,6 +219,20 @@ class RAGSystem:
         """データベースの初期化(スレッドセーフ)"""
         with _db_creation_lock:
             try:
+                # 🔧 強制再構築フラグのチェック（本番環境対応）
+                force_rebuild = os.getenv('FORCE_CHROMA_REBUILD', 'false').lower() == 'true'
+                if force_rebuild:
+                    print("🔄 FORCE_CHROMA_REBUILD=trueが検出されました。データベースを強制削除します...")
+                    if os.path.exists(self.persist_directory):
+                        import shutil
+                        try:
+                            shutil.rmtree(self.persist_directory)
+                            print("✅ データベースディレクトリを削除しました")
+                        except Exception as e:
+                            print(f"⚠️ データベース削除エラー: {e}")
+                    os.makedirs(self.persist_directory, exist_ok=True)
+                    print("📁 新しいデータベースディレクトリを作成しました")
+                
                 # 永続化ディレクトリが存在するか確認
                 if os.path.exists(self.persist_directory):
                     print(f"既存のデータベースを読み込み中: {self.persist_directory}")

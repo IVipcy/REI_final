@@ -513,6 +513,9 @@
         interactionCount: 0
     };
     
+    // 言語切り替え時の挨拶処理フラグ
+    let expectingLanguageChangeGreeting = false;
+    
     // システム音声の管理
     const systemSounds = {
         start: null,
@@ -1103,6 +1106,12 @@
             return;
         }
         
+        // Unity iframeを一時的に非表示にする（モーダルのクリックを可能にするため）
+        if (domElements.unityFrame) {
+            domElements.unityFrame.style.display = 'none';
+            console.log('🎮 Unity iframeを一時的に非表示にしました');
+        }
+        
         domElements.languageModal.style.display = 'flex';
         console.log('✅ 言語選択モーダル表示完了');
     }
@@ -1123,6 +1132,12 @@
         
         if (domElements.languageModal) {
             domElements.languageModal.style.display = 'none';
+        }
+        
+        // Unity iframeを再表示する
+        if (domElements.unityFrame) {
+            domElements.unityFrame.style.display = 'block';
+            console.log('🎮 Unity iframeを再表示しました');
         }
         
         initializeAudioContextAfterUserGesture();
@@ -2384,14 +2399,25 @@
         console.log('言語が設定/変更されました:', data.language);
         appState.currentLanguage = data.language;
         updateUILanguage(data.language);
+        
+        // 言語切り替えによる挨拶が来ることを通知
+        expectingLanguageChangeGreeting = true;
+        console.log('🚩 言語切り替えフラグをON - 次の挨拶で履歴をクリアしません');
     }
     
     function handleGreetingMessage(data) {
         console.log('🎵 挨拶メッセージを受信:', data);
         
-        if (domElements.chatMessages) {
+        // 言語切り替え中でなければ履歴をクリア
+        if (!expectingLanguageChangeGreeting && domElements.chatMessages) {
             domElements.chatMessages.innerHTML = '';
+            console.log('🗑️ チャット履歴をクリアしました');
+        } else if (expectingLanguageChangeGreeting) {
+            console.log('✅ 言語切り替え中のため履歴を保持します');
         }
+        
+        // フラグをリセット
+        expectingLanguageChangeGreeting = false;
         
         const emotion = data.emotion || 'start';
         

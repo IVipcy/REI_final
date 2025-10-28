@@ -23,7 +23,7 @@ body {
     overflow-x: hidden;
 }
 
-/* 背景デザイン - 京友禅をイメージした優雅なパターン */
+/* 背景デザイン - カスタム背景画像 */
 body::before {
     content: "";
     position: fixed;
@@ -31,20 +31,15 @@ body::before {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: 
-        radial-gradient(circle at 20% 30%, rgba(255, 182, 193, 0.15) 0%, transparent 25%),
-        radial-gradient(circle at 80% 70%, rgba(255, 192, 203, 0.12) 0%, transparent 30%),
-        linear-gradient(135deg, 
-            #fafbfc 0%, 
-            #f7f9fb 25%, 
-            #f5f7fa 50%, 
-            #f3f6f9 75%, 
-            #f0f4f8 100%);
+    background-image: url('../images/source/BackGround.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     z-index: -1;
-    animation: backgroundShift 30s ease-in-out infinite;
     pointer-events: none;
 }
 
+/* 背景アニメーション（画像使用時は不要のためコメントアウト）
 @keyframes backgroundShift {
     0%, 100% { 
         transform: translateY(0) scale(1);
@@ -55,6 +50,7 @@ body::before {
         filter: hue-rotate(10deg);
     }
 }
+*/
 
 /* ヘッダー */
 .fixed-header {
@@ -64,11 +60,14 @@ body::before {
     right: 0;
     width: 100%;
     height: 80px;
-    background: rgba(255, 255, 255, 0.95);
+    background-image: url('../images/source/Header.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     backdrop-filter: blur(10px);
-    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 2px 20px rgba(236, 72, 153, 0.15);
     z-index: 100;
-    border-bottom: 1px solid rgba(255, 182, 193, 0.2);
+    border-bottom: 1px solid rgba(236, 72, 153, 0.2);
 }
 
 .header-content {
@@ -98,18 +97,24 @@ body::before {
 
 .title-kyo {
     font-weight: 700;
-    color: #FF69B4;
+    background: linear-gradient(135deg, #ec4899 0%, #db2777 50%, #be185d 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     font-size: 28px;
     letter-spacing: 2px;
-    text-shadow: 2px 2px 4px rgba(255, 105, 180, 0.2);
+    filter: drop-shadow(2px 2px 4px rgba(236, 72, 153, 0.3));
 }
 
 .title-yuzen {
     font-weight: 700;
-    color: #FF1493;
+    background: linear-gradient(135deg, #f472b6 0%, #ec4899 50%, #db2777 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     font-size: 28px;
     letter-spacing: 2px;
-    text-shadow: 2px 2px 4px rgba(255, 20, 147, 0.2);
+    filter: drop-shadow(2px 2px 4px rgba(244, 114, 182, 0.3));
 }
 
 .title-subtitle {
@@ -124,14 +129,17 @@ body::before {
 .title-subtitle::before,
 .title-subtitle::after {
     content: "•";
-    color: #FFB6C1;
+    color: #ec4899;
     margin: 0 5px;
 }
 
 .title-name {
     font-size: 20px;
     font-weight: 500;
-    color: #FF69B4;
+    background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     letter-spacing: 3px;
     position: relative;
 }
@@ -184,8 +192,15 @@ body::before {
 }
 
 .language-button {
-    background: linear-gradient(135deg, #FF69B4 0%, #FF1493 50%, #FFB6C1 100%);
+    background: linear-gradient(135deg, #ec4899 0%, #db2777 50%, #f472b6 100%);
     color: white;
+    box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
+}
+
+.language-button:hover {
+    background: linear-gradient(135deg, #db2777 0%, #be185d 50%, #ec4899 100%);
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 4px 15px rgba(236, 72, 153, 0.5);
 }
 
 .language-display {
@@ -239,14 +254,14 @@ body::before {
     width: 100%;
     height: 36px;
     background: 
-        linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(255, 250, 255, 0.9));
+        linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(253, 242, 248, 0.9));
     border-radius: 18px;
     overflow: hidden;
     position: relative;
     box-shadow: 
-        0 4px 20px rgba(255, 182, 193, 0.15),
+        0 4px 20px rgba(236, 72, 153, 0.15),
         inset 0 1px 3px rgba(255, 255, 255, 0.9);
-    border: 1px solid rgba(255, 182, 193, 0.2);
+    border: 1px solid rgba(236, 72, 153, 0.2);
 }
 
 /* 理解度表示テキスト（メーター内に統合） */
@@ -277,12 +292,13 @@ body::before {
 }
 
 .level-badge {
-    background: linear-gradient(135deg, #FF69B4, #FF1493);
+    background: linear-gradient(135deg, #ec4899, #db2777);
     color: white;
     padding: 2px 8px;
     border-radius: 10px;
     font-size: 12px;
     font-weight: bold;
+    box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
 }
 
 .level-name {
@@ -293,13 +309,14 @@ body::before {
 .relationship-progress {
     height: 100%;
     background: linear-gradient(90deg, 
-        rgba(255, 182, 193, 0.4),
-        rgba(255, 105, 180, 0.6),
-        rgba(255, 20, 147, 0.8));
+        rgba(251, 207, 232, 0.5),
+        rgba(236, 72, 153, 0.7),
+        rgba(219, 39, 119, 0.9));
     border-radius: 18px;
     transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
     overflow: hidden;
+    box-shadow: inset 0 2px 8px rgba(236, 72, 153, 0.3);
 }
 
 /* 経験値表示（右側） */
@@ -324,24 +341,24 @@ body::before {
 
 /* MAX専用スタイル */
 .relationship-level .level-max-badge {
-    background: linear-gradient(135deg, #FFD700, #FFA500);
+    background: linear-gradient(135deg, #f59e0b, #d97706);
     color: white;
     padding: 3px 12px;
     border-radius: 12px;
     font-size: 13px;
     font-weight: bold;
-    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
     animation: maxPulse 2s ease-in-out infinite;
 }
 
 @keyframes maxPulse {
     0%, 100% {
         transform: scale(1);
-        box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
     }
     50% {
         transform: scale(1.05);
-        box-shadow: 0 4px 12px rgba(255, 215, 0, 0.5);
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.5);
     }
 }
 
@@ -435,7 +452,7 @@ body::before {
     max-height: 100%;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin !important;
-    scrollbar-color: rgba(255, 105, 180, 0.4) transparent !important;
+    scrollbar-color: rgba(236, 72, 153, 0.4) transparent !important;
 }
 
 /* スクロールバー強制表示 */
@@ -447,18 +464,18 @@ body::before {
 }
 
 .chat-messages::-webkit-scrollbar-track {
-    background: rgba(255, 182, 193, 0.1) !important;
+    background: rgba(236, 72, 153, 0.1) !important;
     border-radius: 10px !important;
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #FFB6C1, #FF69B4) !important;
+    background: linear-gradient(180deg, #ec4899, #db2777) !important;
     border-radius: 10px !important;
     min-height: 30px !important;
 }
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, #FF69B4, #FF1493) !important;
+    background: linear-gradient(180deg, #db2777, #be185d) !important;
 }
 
 /* メッセージラッパー */
@@ -548,15 +565,15 @@ body::before {
 
 /* アシスタントメッセージ：高級グラスモーフィズム */
 .assistant-message {
-    background: linear-gradient(90deg, #14b8a6 0%, #3b82f6 100%);
+    background: linear-gradient(135deg, #ec4899 0%, #db2777 50%, #f472b6 100%);
     color: white;
     padding: 12px 18px;
     border-radius: 20px 20px 20px 5px;
     margin-left: 10px;
     margin-right: auto;
     box-shadow: 
-        0 4px 20px rgba(20, 184, 166, 0.3),
-        0 2px 15px rgba(59, 130, 246, 0.3),
+        0 4px 20px rgba(236, 72, 153, 0.4),
+        0 2px 15px rgba(244, 114, 182, 0.3),
         inset 0 1px 2px rgba(255, 255, 255, 0.2);
     position: relative;
     overflow: hidden;
@@ -569,18 +586,18 @@ body::before {
     left: 0;
     right: 0;
     padding: 20px;
-    background: linear-gradient(to top, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.95));
+    background: linear-gradient(to top, rgba(253, 242, 248, 0.98), rgba(255, 255, 255, 0.95));
     backdrop-filter: blur(10px);
-    border-top: 1px solid rgba(255, 182, 193, 0.2);
+    border-top: 1px solid rgba(236, 72, 153, 0.2);
     border-radius: 0 0 20px 20px;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 -2px 10px rgba(236, 72, 153, 0.1);
     z-index: 10;
 }
 
 /* 入力トグルボタン */
 .input-toggle-button {
     width: 100%;
-    background: linear-gradient(135deg, #FFB6C1, #FF69B4);
+    background: linear-gradient(135deg, #ec4899 0%, #db2777 50%, #f472b6 100%);
     color: white;
     border: none;
     border-radius: 12px;
@@ -589,11 +606,17 @@ body::before {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(255, 105, 180, 0.3);
+    box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
+}
+
+.input-toggle-button:hover {
+    background: linear-gradient(135deg, #db2777 0%, #be185d 50%, #ec4899 100%);
+    box-shadow: 0 4px 15px rgba(236, 72, 153, 0.5);
+    transform: translateY(-1px);
 }
 
 /* 入力フォームコンテナ */
@@ -613,7 +636,7 @@ body::before {
 #message-input {
     width: 100%;
     padding: 15px 20px;
-    border: 2px solid rgba(255, 182, 193, 0.3);
+    border: 2px solid rgba(236, 72, 153, 0.3);
     border-radius: 15px;
     font-size: 16px;
     background: rgba(255, 255, 255, 0.95);
@@ -628,8 +651,8 @@ body::before {
 }
 
 #message-input:focus {
-    border-color: rgba(255, 182, 193, 0.8);
-    box-shadow: 0 0 0 3px rgba(255, 182, 193, 0.2);
+    border-color: rgba(236, 72, 153, 0.8);
+    box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.2);
     background-color: #fff;
 }
 
@@ -643,7 +666,7 @@ body::before {
 
 button {
     padding: 10px 20px;
-    background: linear-gradient(145deg, #4dbd52, #5acf60);
+    background: linear-gradient(135deg, #ec4899, #db2777);
     color: white;
     border: none;
     border-radius: 15px;
@@ -652,12 +675,23 @@ button {
     font-weight: 500;
     letter-spacing: 0.3px;
     transition: all 0.3s ease;
-    box-shadow: 0 3px 10px rgba(77, 189, 82, 0.25);
+    box-shadow: 0 3px 10px rgba(236, 72, 153, 0.3);
+}
+
+button:hover {
+    background: linear-gradient(135deg, #db2777, #be185d);
+    box-shadow: 0 5px 15px rgba(236, 72, 153, 0.5);
+    transform: translateY(-1px);
 }
 
 #voice-button {
-    background: linear-gradient(145deg, #2196F3, #1e88e5);
-    box-shadow: 0 3px 10px rgba(33, 150, 243, 0.25);
+    background: linear-gradient(135deg, #f472b6, #ec4899);
+    box-shadow: 0 3px 10px rgba(244, 114, 182, 0.3);
+}
+
+#voice-button:hover {
+    background: linear-gradient(135deg, #ec4899, #db2777);
+    box-shadow: 0 5px 15px rgba(244, 114, 182, 0.5);
 }
 
 /* サジェスチョンボタン */
@@ -684,16 +718,14 @@ button {
 }
 
 .suggestion-button:hover {
-    background: 
-        radial-gradient(circle at 30% 50%, #10b981 0%, transparent 50%),
-        radial-gradient(circle at 70% 50%, #3b82f6 0%, transparent 50%),
-        linear-gradient(135deg, #06b6d4 0%, #10b981 100%);
+    background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
     color: white;
     transform: translateY(-2px) scale(1.05);
     box-shadow: 
-        0 5px 20px rgba(16, 185, 129, 0.4),
-        0 2px 10px rgba(59, 130, 246, 0.3);
+        0 5px 20px rgba(236, 72, 153, 0.4),
+        0 2px 10px rgba(244, 114, 182, 0.3);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-color: transparent;
 }
 
 /* モーダル */
@@ -722,7 +754,10 @@ button {
 }
 
 .modal-content h2 {
-    color: #FF69B4;
+    background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     margin-bottom: 30px;
     font-size: 24px;
     font-weight: 600;
@@ -752,13 +787,13 @@ button {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0);
-    background: linear-gradient(135deg, #FF69B4, #FF1493);
+    background: linear-gradient(135deg, #ec4899 0%, #db2777 50%, #f472b6 100%);
     color: white;
     padding: 20px 30px;
     border-radius: 15px;
     font-size: 18px;
     font-weight: bold;
-    box-shadow: 0 5px 25px rgba(255, 105, 180, 0.5);
+    box-shadow: 0 5px 25px rgba(236, 72, 153, 0.5);
     z-index: 5000;
     transition: transform 0.3s ease-out;
 }
@@ -779,6 +814,7 @@ button {
         right: 0 !important;
         height: 60px !important;
         z-index: 1000 !important;
+        background-position: right center !important;
     }
     
     /* メインラッパー：全画面 */
@@ -933,7 +969,7 @@ button {
         min-height: 150px !important;
         -webkit-overflow-scrolling: touch !important;
         scrollbar-width: thin !important;
-        scrollbar-color: rgba(255, 105, 180, 0.5) transparent !important;
+        scrollbar-color: rgba(236, 72, 153, 0.5) transparent !important;
     }
     
     /* モバイル用スクロールバー強制表示 */
@@ -946,18 +982,18 @@ button {
     }
     
     .chat-messages::-webkit-scrollbar-track {
-        background: rgba(255, 182, 193, 0.2) !important;
+        background: rgba(236, 72, 153, 0.2) !important;
         border-radius: 10px !important;
     }
     
     .chat-messages::-webkit-scrollbar-thumb {
-        background: rgba(255, 105, 180, 0.6) !important;
+        background: rgba(236, 72, 153, 0.6) !important;
         border-radius: 10px !important;
         min-height: 20px !important;
     }
     
     .chat-messages::-webkit-scrollbar-thumb:hover {
-        background: rgba(255, 105, 180, 0.8) !important;
+        background: rgba(236, 72, 153, 0.8) !important;
     }
     
     /* メッセージバブル：より透明に */
@@ -975,7 +1011,7 @@ button {
         width: 100% !important;
         padding: 10px !important;
         background: rgba(255, 255, 255, 0.9) !important;
-        border-top: 1px solid rgba(255, 182, 193, 0.2) !important;
+        border-top: 1px solid rgba(236, 72, 153, 0.2) !important;
         z-index: 110 !important;
     }
     
@@ -983,7 +1019,7 @@ button {
     .input-toggle-button {
         width: 100% !important;
         padding: 10px !important;
-        background: linear-gradient(135deg, #FFB6C1, #FF69B4) !important;
+        background: linear-gradient(135deg, #ec4899, #db2777, #f472b6) !important;
         color: white !important;
         border: none !important;
         border-radius: 12px !important;
@@ -1000,7 +1036,7 @@ button {
         min-height: 60px !important;
         max-height: 100px !important;
         padding: 10px !important;
-        border: 2px solid rgba(255, 182, 193, 0.3) !important;
+        border: 2px solid rgba(236, 72, 153, 0.3) !important;
         border-radius: 12px !important;
         resize: none !important;
         font-size: 14px !important;
@@ -1083,6 +1119,7 @@ button {
     /* ヘッダーをさらにコンパクトに */
     .fixed-header {
         height: 50px !important;
+        background-position: right center !important;
     }
     
     .main-wrapper {
@@ -1319,14 +1356,14 @@ button {
 
 /* Masterレベルバッジ */
 .master-badge {
-    background: linear-gradient(135deg, #FFD700, #FFA500) !important;
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
     color: white !important;
     padding: 3px 12px !important;
     border-radius: 12px !important;
     font-size: 13px !important;
     font-weight: bold !important;
     box-shadow: 
-        0 4px 15px rgba(255, 215, 0, 0.5),
+        0 4px 15px rgba(245, 158, 11, 0.5),
         inset 0 1px 3px rgba(255, 255, 255, 0.5) !important;
     animation: masterGlow 2s ease-in-out infinite;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -1335,12 +1372,12 @@ button {
 @keyframes masterGlow {
     0%, 100% {
         box-shadow: 
-            0 4px 15px rgba(255, 215, 0, 0.5),
+            0 4px 15px rgba(245, 158, 11, 0.5),
             inset 0 1px 3px rgba(255, 255, 255, 0.5);
     }
     50% {
         box-shadow: 
-            0 6px 25px rgba(255, 215, 0, 0.8),
+            0 6px 25px rgba(245, 158, 11, 0.8),
             inset 0 1px 3px rgba(255, 255, 255, 0.7);
     }
 }
@@ -1367,14 +1404,14 @@ button {
 }
 
 .quiz-choice-button.accept {
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, #ec4899, #db2777);
     color: white;
 }
 
 .quiz-choice-button.accept:hover {
-    background: linear-gradient(135deg, #059669, #047857);
+    background: linear-gradient(135deg, #db2777, #be185d);
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 5px 15px rgba(236, 72, 153, 0.4);
 }
 
 .quiz-choice-button.decline {
@@ -1401,8 +1438,8 @@ button {
 .quiz-option-button {
     width: 100%;
     padding: 15px 20px;
-    background: linear-gradient(135deg, rgba(255, 182, 193, 0.6), rgba(255, 200, 210, 0.5));
-    border: 2px solid rgba(255, 182, 193, 0.5);
+    background: linear-gradient(135deg, rgba(251, 207, 232, 0.6), rgba(252, 231, 243, 0.5));
+    border: 2px solid rgba(236, 72, 153, 0.5);
     border-radius: 12px;
     font-size: 15px;
     text-align: left;
@@ -1413,11 +1450,11 @@ button {
 }
 
 .quiz-option-button:hover {
-    background: linear-gradient(135deg, #FFB6C1, #FF69B4);
+    background: linear-gradient(135deg, #ec4899, #db2777);
     color: white;
-    border-color: #FF69B4;
+    border-color: #ec4899;
     transform: translateX(5px);
-    box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
+    box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
 }
 
 /* 報酬コンテナ */
@@ -1426,15 +1463,18 @@ button {
     flex-direction: column;
     align-items: center;
     padding: 20px;
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(255, 250, 250, 0.9));
+    background: linear-gradient(145deg, rgba(253, 242, 248, 0.95), rgba(252, 231, 243, 0.9));
     border-radius: 20px;
-    box-shadow: 0 8px 25px rgba(255, 182, 193, 0.3);
+    box-shadow: 0 8px 25px rgba(236, 72, 153, 0.3);
     margin: 15px 10px;
     animation: fadeIn 0.5s ease-out;
 }
 
 .quiz-reward-container h3 {
-    color: #FF69B4;
+    background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     font-size: 20px;
     margin-bottom: 15px;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -1452,20 +1492,20 @@ button {
 .reward-download-button {
     display: inline-block;
     padding: 12px 30px;
-    background: linear-gradient(135deg, #FFD700, #FFA500);
+    background: linear-gradient(135deg, #f59e0b, #d97706);
     color: white;
     text-decoration: none;
     border-radius: 12px;
     font-size: 16px;
     font-weight: bold;
-    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
     transition: all 0.3s ease;
 }
 
 .reward-download-button:hover {
-    background: linear-gradient(135deg, #FFA500, #FF8C00);
+    background: linear-gradient(135deg, #d97706, #b45309);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.6);
 }
 
 /* モバイル対応 */
