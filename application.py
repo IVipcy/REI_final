@@ -372,6 +372,10 @@ QUIZ_DATA = {
 # クイズセッション管理
 quiz_sessions = {}
 
+# ElevenLabsクライアント（最優先）
+elevenlabs_client = None
+use_elevenlabs = False
+
 # CoeFontクライアント
 coe_font_client = None
 use_coe_font = False
@@ -451,6 +455,90 @@ class CoeFontClient:
             'neutral': {'pitch': 1.0, 'volume': 1.0}
         }
         return emotion_map.get(emotion, emotion_map['neutral'])
+
+# ====== ElevenLabs音声合成クラス ======
+class ElevenLabsClient:
+    """ElevenLabs音声合成クライアント"""
+    
+    def __init__(self, api_key=None, voice_id=None, model_id=None):
+        self.api_key = api_key
+        self.voice_id = voice_id or "21m00Tcm4TlvDq8ikWAM"  # デフォルト音声
+        self.model_id = model_id or "eleven_multilingual_v2"  # デフォルトモデル
+        self.base_url = "https://api.elevenlabs.io/v1"
+    
+    def test_connection(self):
+        """接続テスト"""
+        if not self.api_key:
+            return False
+        
+        headers = {'xi-api-key': self.api_key}
+        try:
+            response = requests.get(f"{self.base_url}/voices", headers=headers, timeout=10)
+            return response.status_code == 200
+        except Exception as e:
+            print(f"ElevenLabs接続テストエラー: {e}")
+            return False
+    
+    def generate_voice(self, text, emotion='neutral', speed=1.0):
+        """音声生成
+        
+        Args:
+            text: 読み上げテキスト
+            emotion: 感情（'neutral', 'happy', 'sad', 'angry', 'surprised'）
+            speed: 速度（未使用、互換性のため保持）
+        
+        Returns:
+            bytes: MP3音声データ
+        """
+        if not self.api_key:
+            raise ValueError("ElevenLabs APIキーが設定されていません")
+        
+        headers = {
+            'xi-api-key': self.api_key,
+            'Content-Type': 'application/json'
+        }
+        
+        # ElevenLabs公式推奨設定
+        stability = 0.5
+        similarity_boost = 0.75
+        style = 0.0
+        
+        print(f"🎤 ElevenLabsに送信するテキスト:")
+        print(f"   {text[:100]}{'...' if len(text) > 100 else ''}")
+        
+        data = {
+            'text': text,
+            'model_id': self.model_id,
+            'voice_settings': {
+                'stability': stability,
+                'similarity_boost': similarity_boost,
+                'style': style,
+                'use_speaker_boost': True
+            }
+        }
+        
+        try:
+            response = requests.post(
+                f"{self.base_url}/text-to-speech/{self.voice_id}",
+                headers=headers,
+                json=data,
+                timeout=60  # タイムアウトを60秒に延長
+            )
+            
+            if response.status_code == 200:
+                print(f"✅ ElevenLabs音声生成成功: {len(response.content)} bytes")
+                return response.content
+            else:
+                error_msg = f"ElevenLabs API Error: {response.status_code} - {response.text}"
+                print(f"❌ {error_msg}")
+                raise Exception(error_msg)
+                
+        except Exception as e:
+            print(f"❌ ElevenLabs音声生成エラー: {e}")
+            print(f"📊 エラータイプ: {type(e).__name__}")
+            import traceback
+            traceback.print_exc()
+            raise
 
 # ====== Azure Speech Serviceの音声合成クラス ======
 class AzureSpeechClient:
@@ -598,7 +686,7 @@ def get_relationship_adjusted_greeting(language, relationship_style):
 # ====== 初期化処理 ======
 def initialize_system():
     """システムの初期化"""
-    global client, chatbot, coe_font_client, use_coe_font, azure_speech_client, use_azure_speech, speech_processor
+    global client, chatbot, elevenlabs_client, use_elevenlabs, coe_font_client, use_coe_font, azure_speech_client, use_azure_speech, speech_processor
     
     print("🚀 システム初期化中...")
     
@@ -617,29 +705,55 @@ def initialize_system():
     except Exception as e:
         print(f"⚠️ SpeechProcessor初期化失敗: {e}")
     
-    # 🆕 Azure Speech Service初期化（日本語用 - 最優先）
+    # 🆕 ElevenLabs初期化（日本語用 - 最優先）
+    elevenlabs_key = os.getenv('ELEVENLABS_API_KEY')
+    elevenlabs_voice_id = os.getenv('ELEVENLABS_VOICE_ID', '21m00Tcm4TlvDq8ikWAM')
+    elevenlabs_model_id = os.getenv('ELEVENLABS_MODEL_ID', 'eleven_multilingual_v2')
+    elevenlabs_enabled = os.getenv('ELEVENLABS_ENABLED', 'false').lower() == 'true'
+    
+    if elevenlabs_enabled and elevenlabs_key:
+        try:
+            elevenlabs_client = ElevenLabsClient(
+                elevenlabs_key, 
+                elevenlabs_voice_id, 
+                elevenlabs_model_id
+            )
+            if elevenlabs_client.test_connection():
+                use_elevenlabs = True
+                print(f"✅ ElevenLabs初期化完了 (音声ID: {elevenlabs_voice_id}, モデル: {elevenlabs_model_id})")
+            else:
+                print("⚠️ ElevenLabs接続テスト失敗")
+        except Exception as e:
+            print(f"⚠️ ElevenLabs初期化エラー: {e}")
+            print("ℹ️ ElevenLabsをスキップしてフォールバックを使用します")
+    else:
+        print("ℹ️ ElevenLabsは設定されていません")
+    
+    # Azure Speech Service初期化（フォールバック用 - ElevenLabsが無い場合）
     azure_key = os.getenv('AZURE_SPEECH_KEY')
     azure_region = os.getenv('AZURE_SPEECH_REGION', 'japaneast')
     azure_voice = os.getenv('AZURE_VOICE_NAME', 'ja-JP-NanamiNeural')
     
-    if azure_key and azure_region:
+    if not use_elevenlabs and azure_key and azure_region:
         azure_speech_client = AzureSpeechClient(azure_key, azure_region, azure_voice)
         if azure_speech_client.test_connection():
             use_azure_speech = True
             print(f"✅ Azure Speech Service初期化完了 (音声: {azure_voice})")
         else:
             print("⚠️ Azure Speech Service接続テスト失敗")
+    elif use_elevenlabs:
+        print("ℹ️ ElevenLabsを使用するため、Azureは無効化されています")
     else:
         print("ℹ️ Azure Speech Serviceは設定されていません")
     
-    # CoeFont API初期化（フォールバック用 - Azureが無い場合のみ）
+    # CoeFont API初期化（フォールバック用 - ElevenLabs/Azureが無い場合のみ）
     coefont_enabled = os.getenv('COEFONT_ENABLED', 'false').lower() == 'true'
     coefont_key = os.getenv('COEFONT_ACCESS_KEY')
     coefont_secret = os.getenv('COEFONT_ACCESS_SECRET')
     coefont_id = os.getenv('COEFONT_VOICE_ID')
     
-    # Azureが使えない場合のみCoeFontを初期化
-    if not use_azure_speech and coefont_enabled and coefont_key and coefont_secret and coefont_id:
+    # ElevenLabs/Azureが使えない場合のみCoeFontを初期化
+    if not use_elevenlabs and not use_azure_speech and coefont_enabled and coefont_key and coefont_secret and coefont_id:
         coe_font_client = CoeFontClient(coefont_key, coefont_secret, coefont_id)
         if coe_font_client.test_connection():
             use_coe_font = True
@@ -647,8 +761,8 @@ def initialize_system():
         else:
             print("⚠️ CoeFont API接続テスト失敗")
     else:
-        if use_azure_speech:
-            print("ℹ️ Azure Speech Serviceを使用するため、CoeFontは無効化されています")
+        if use_elevenlabs or use_azure_speech:
+            print("ℹ️ ElevenLabs/Azureを使用するため、CoeFontは無効化されています")
         else:
             print("ℹ️ CoeFont APIは設定されていません")
     
@@ -660,7 +774,7 @@ def initialize_system():
         print(f"❌ RAGChatbot初期化エラー: {e}")
     
     print("🎉 システム初期化完了")
-    print(f"📊 音声エンジン状況: Azure={use_azure_speech}, CoeFont={use_coe_font}, OpenAI TTS=常に利用可能")
+    print(f"📊 音声エンジン状況: ElevenLabs={use_elevenlabs}, Azure={use_azure_speech}, CoeFont={use_coe_font}, OpenAI TTS=常に利用可能")
 
 # ====== ユーティリティ関数 ======
 def get_session_data(session_id):
@@ -701,16 +815,31 @@ def get_visitor_data(visitor_id):
 
 # ====== 音声生成関数 ======
 def generate_audio_by_language(text, language='ja', emotion_params='neutral'):
-    """言語に応じた音声生成（Azure優先）"""
+    """言語に応じた音声生成（ElevenLabs優先）"""
     # 音声キャッシュのチェック
     cache_key = hashlib.md5(f"{text}_{language}_{emotion_params}".encode()).hexdigest()
     if cache_key in audio_cache:
         print(f"🎵 音声キャッシュヒット: {cache_key[:8]}")
         return audio_cache[cache_key]
     
+    audio_base64 = None
+    
     try:
-        # 🆕 日本語の場合、Azure Speech Serviceを最優先
-        if language == 'ja' and use_azure_speech:
+        # 🆕 日本語の場合、ElevenLabsを最優先
+        if language == 'ja' and use_elevenlabs:
+            print(f"🎤 ElevenLabsで音声生成中... (感情: {emotion_params})")
+            audio_content = elevenlabs_client.generate_voice(
+                text, 
+                emotion=emotion_params,
+                speed=1.0
+            )
+            
+            # MP3をBase64エンコード（ElevenLabsはMP3で返す）
+            audio_base64 = base64.b64encode(audio_content).decode('utf-8')
+            print(f"✅ ElevenLabs音声生成成功: {len(audio_content)} バイト")
+            
+        # フォールバック1: 日本語 + Azure Speech Service
+        elif language == 'ja' and use_azure_speech:
             print(f"🎤 Azure Speech Serviceで音声生成中... (感情: {emotion_params})")
             audio_content = azure_speech_client.generate_voice(
                 text, 
@@ -732,7 +861,7 @@ def generate_audio_by_language(text, language='ja', emotion_params='neutral'):
             
             print(f"✅ Azure音声生成成功: {len(audio_content)} バイト")
             
-        # フォールバック: 日本語 + CoeFont（Azureが無い場合のみ）
+        # フォールバック2: 日本語 + CoeFont
         elif language == 'ja' and use_coe_font:
             print(f"🎤 CoeFont APIで音声生成中... (感情: {emotion_params})")
             audio_content = coe_font_client.generate_voice(text, emotion=emotion_params)
@@ -778,7 +907,8 @@ def generate_audio_by_language(text, language='ja', emotion_params='neutral'):
         audio_cache[cache_key] = audio_base64
         
         # 使用した音声エンジンをログ出力
-        engine = 'Azure Speech' if (language == 'ja' and use_azure_speech) else \
+        engine = 'ElevenLabs' if (language == 'ja' and use_elevenlabs) else \
+                 'Azure Speech' if (language == 'ja' and use_azure_speech) else \
                  'CoeFont' if (language == 'ja' and use_coe_font) else \
                  'OpenAI TTS'
         print(f"🎵 音声生成完了: {cache_key[:8]} (エンジン: {engine})")
@@ -1289,10 +1419,10 @@ def handle_visitor_info(data):
         
         print(f'👤 訪問者情報更新: {visitor_id} (訪問回数: {v_data["visit_count"]})')
 
-# ====== 【修正箇所3】handle_connect関数の修正(9種類感情対応) ======
+# ====== 【修正箇所3】handle_connect関数の修正(挨拶重複防止) ======
 @socketio.on('connect')
 def handle_connect():
-    """WebSocket接続時の処理"""
+    """WebSocket接続時の処理（挨拶はset_languageで送信）"""
     session_id = request.sid
     visitor_id = request.args.get('visitor_id', str(uuid.uuid4()))
     
@@ -1302,7 +1432,7 @@ def handle_connect():
     if session_id not in session_data:
         session_data[session_id] = {
             'visitor_id': visitor_id,
-            'first_interaction': True,
+            'first_interaction': True,  # 🎯 初回フラグは維持（set_languageで使用）
             'emotion_history': [],
             'question_count': 0,
             'last_emotion': 'neutral',
@@ -1317,64 +1447,15 @@ def handle_connect():
             },
             'selected_suggestions': [],
             'current_emotion': 'neutral',
-            'relationship_style': 'formal'
+            'relationship_style': 'formal',
+            'greeting_sent': False  # 🎯 挨拶送信フラグを追加
         }
         
-        # 初回接続の場合
-        if session_data[session_id]['first_interaction']:
-            try:
-                # 自己紹介メッセージ
-                intro_message = "はじめまして！手描き京友禅職人のレイです！私は糸目のりおきという工程を専門にしています。何でも質問してくださいね！"
-                intro_emotion = 'start'  # Startモーション使用
-                
-                # 感情を検証
-                intro_emotion = validate_emotion(intro_emotion)
-                
-                # 音声生成
-                try:
-                    audio_data = generate_audio_by_language(
-                        intro_message, 
-                        'ja', 
-                        emotion_params=intro_emotion
-                    )
-                except Exception as e:
-                    print(f"❌ 挨拶音声生成エラー: {e}")
-                    audio_data = None
-                
-                # 初回挨拶データ
-                greeting_data = {
-                    'message': intro_message,
-                    'emotion': intro_emotion,
-                    'audio': audio_data,
-                    'isGreeting': True,
-                    'language': 'ja',
-                    'voice_engine': 'azure_speech' if use_azure_speech else ('coe_font' if use_coe_font else 'openai_tts'),
-                    'relationshipLevel': 'formal',
-                    'mentalState': session_data[session_id]['mental_state']
-                }
-                
-                # サジェスチョン生成
-                greeting_data['suggestions'] = generate_prioritized_suggestions(
-                    session_data[session_id], 
-                    None, 
-                    'formal', 
-                    'ja'
-                )
-                
-                emit('greeting', greeting_data)
-                
-                # 感情履歴を更新
-                update_emotion_history(session_id, intro_emotion)
-                
-                # 初回フラグを更新
-                session_data[session_id]['first_interaction'] = False
-                
-            except Exception as e:
-                print(f"❌ 挨拶生成エラー: {e}")
-                emit('error', {'message': '初期化中にエラーが発生しました'})
+        # 🎯 修正: 接続時は挨拶を送信しない（set_languageで送信）
+        print(f"📋 セッション初期化完了 - 挨拶はset_language時に送信します")
     
     else:
-        # 既存セッションの場合
+        # 既存セッションの場合（🎯 修正: 再接続時も挨拶はset_languageで送信）
         data = get_session_data(session_id)
         language = data["language"]
         
@@ -1389,55 +1470,25 @@ def handle_connect():
             data['relationship_style'] = relationship_style
         
         print(f'🔌 クライアント再接続: {session_id}, 言語: {language}, 関係性: {relationship_style}')
-        
-        # 再接続メッセージ
-        greeting_message = get_relationship_adjusted_greeting(language, relationship_style)
-        greeting_emotion = "happy"
-        
-        # 感情を検証
-        greeting_emotion = validate_emotion(greeting_emotion)
-        
-        # 感情履歴を更新
-        update_emotion_history(session_id, greeting_emotion)
-        
-        try:
-            audio_data = generate_audio_by_language(
-                greeting_message, 
-                language, 
-                emotion_params=greeting_emotion
-            )
-        except Exception as e:
-            print(f"❌ 挨拶音声生成エラー: {e}")
-            audio_data = None
-        
-        greeting_data = {
-            'message': greeting_message,
-            'emotion': greeting_emotion,
-            'audio': audio_data,
-            'isGreeting': True,
-            'language': language,
-            'voice_engine': 'azure_speech' if (use_azure_speech and language == 'ja') else ('coe_font' if (use_coe_font and language == 'ja') else 'openai_tts'),
-            'relationshipLevel': relationship_style,
-            'mentalState': data['mental_state']
-        }
-        
-        # 優先順位付きサジェスチョンを生成
-        greeting_data['suggestions'] = generate_prioritized_suggestions(
-            data, visitor_info, relationship_style, language
-        )
-        
-        emit('greeting', greeting_data)
+        # 🎯 修正: ここでは挨拶を送信しない（set_languageで送信）
     
     emit('status', {'message': '接続成功'})
     emit('current_language', {'language': session_data[session_id]['language']})
 
 @socketio.on('set_language')
 def handle_set_language(data):
+    """言語設定と挨拶送信（🎯 修正: 初回/再訪問で分岐）"""
     session_id = request.sid
     language = data.get('language', 'ja')
     
     session_info = get_session_data(session_id)
     session_info['language'] = language
+    
+    # 🎯 修正: 既に挨拶を送信済みの場合はスキップ
+    if session_info.get('greeting_sent', False):
+        print(f"🌍 言語切り替え: {session_id} -> {language} (挨拶送信済み)")
+        emit('language_changed', {'language': language})
+        return
     
     # 関係性レベルを確認
     visitor_id = session_info.get('visitor_id')
@@ -1449,13 +1500,29 @@ def handle_set_language(data):
         rel_info = calculate_relationship_level(conversation_count)
         relationship_style = rel_info['style']
     
-    print(f"🌍 言語設定変更: {session_id} -> {language}")
+    print(f"🌍 言語設定: {session_id} -> {language}, 初回={session_info.get('first_interaction', True)}")
     
     emit('language_changed', {'language': language})
     
-    # 関係性レベルに応じた挨拶
-    greeting_message = get_relationship_adjusted_greeting(language, relationship_style)
-    greeting_emotion = "happy"
+    # 🎯 修正: 初回接続の場合は自己紹介メッセージ
+    if session_info.get('first_interaction', True):
+        # 自己紹介メッセージ（言語対応）
+        intro_messages = {
+            'ja': "はじめまして！手描き京友禅職人のレイです！私は糸目のりおきという工程を専門にしています。何でも質問してくださいね！",
+            'en': "Nice to meet you! I'm REI, a hand-painted Kyo-Yuzen artisan! I specialize in the Itome-Nori process. Feel free to ask me anything!"
+        }
+        greeting_message = intro_messages.get(language, intro_messages['ja'])
+        greeting_emotion = 'start'  # Startモーション使用
+        
+        # 初回フラグを更新
+        session_info['first_interaction'] = False
+    else:
+        # 再訪問の場合は関係性に応じた挨拶
+        greeting_message = get_relationship_adjusted_greeting(language, relationship_style)
+        greeting_emotion = "happy"
+    
+    # 感情を検証
+    greeting_emotion = validate_emotion(greeting_emotion)
     
     try:
         audio_data = generate_audio_by_language(
@@ -1473,7 +1540,7 @@ def handle_set_language(data):
         'audio': audio_data,
         'isGreeting': True,
         'language': language,
-        'voice_engine': 'azure_speech' if (use_azure_speech and language == 'ja') else ('coe_font' if (use_coe_font and language == 'ja') else 'openai_tts'),
+        'voice_engine': 'elevenlabs' if (use_elevenlabs and language == 'ja') else ('azure_speech' if (use_azure_speech and language == 'ja') else ('coe_font' if (use_coe_font and language == 'ja') else 'openai_tts')),
         'relationshipLevel': relationship_style,
         'mentalState': session_info['mental_state']
     }
@@ -1483,7 +1550,11 @@ def handle_set_language(data):
         session_info, visitor_info, relationship_style, language
     )
     
+    # 🎯 修正: 挨拶送信フラグを設定
+    session_info['greeting_sent'] = True
+    
     emit('greeting', greeting_data)
+    print(f"✅ 挨拶送信完了: {session_id}")
 
 @socketio.on('disconnect')
 def handle_disconnect():
@@ -1745,7 +1816,7 @@ def handle_message(data):
             'emotion': emotion,
             'audio': audio_data,
             'language': language,
-            'voice_engine': 'azure_speech' if (use_azure_speech and language == 'ja') else ('coe_font' if (use_coe_font and language == 'ja') else 'openai_tts'),
+            'voice_engine': 'elevenlabs' if (use_elevenlabs and language == 'ja') else ('azure_speech' if (use_azure_speech and language == 'ja') else ('coe_font' if (use_coe_font and language == 'ja') else 'openai_tts')),
             'processingTime': round(processing_time, 2),
             'suggestions': suggestions,
             'relationshipLevel': relationship_style,

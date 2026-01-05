@@ -2408,8 +2408,21 @@
         console.log('🚩 言語切り替えフラグをON - 次の挨拶で履歴をクリアしません');
     }
     
+    // 🎯 挨拶重複防止用フラグ
+    let greetingReceived = false;
+    let lastGreetingTime = 0;
+    
     function handleGreetingMessage(data) {
         console.log('🎵 挨拶メッセージを受信:', data);
+        
+        // 🎯 修正: 重複防止（3秒以内の同じメッセージはスキップ）
+        const now = Date.now();
+        if (greetingReceived && (now - lastGreetingTime) < 3000) {
+            console.log('⚠️ 挨拶重複検出 - スキップします');
+            return;
+        }
+        greetingReceived = true;
+        lastGreetingTime = now;
         
         // 言語切り替え中でなければ履歴をクリア
         if (!expectingLanguageChangeGreeting && domElements.chatMessages) {
