@@ -387,6 +387,25 @@ use_azure_speech = False
 # SpeechProcessor (音声認識)
 speech_processor = None
 
+# 京友禅用語辞書（ElevenLabs用テキスト正規化）
+kyoyuzen_terms = {}
+
+def load_kyoyuzen_terms():
+    """京友禅用語辞書を読み込み"""
+    global kyoyuzen_terms
+    try:
+        terms_path = Path(__file__).parent / 'kyoyuzen_terms.json'
+        if terms_path.exists():
+            with open(terms_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                kyoyuzen_terms = data.get('terms', {})
+                print(f"✅ 京友禅用語辞書読み込み完了: {len(kyoyuzen_terms)}語")
+        else:
+            print("ℹ️ 京友禅用語辞書ファイルが見つかりません")
+    except Exception as e:
+        print(f"⚠️ 京友禅用語辞書読み込みエラー: {e}")
+        kyoyuzen_terms = {}
+
 # ====== CoeFontの音声合成クラス ======
 class CoeFontClient:
     """CoeFont音声合成クライアント"""
@@ -463,8 +482,30 @@ class ElevenLabsClient:
     def __init__(self, api_key=None, voice_id=None, model_id=None):
         self.api_key = api_key
         self.voice_id = voice_id or "21m00Tcm4TlvDq8ikWAM"  # デフォルト音声
-        self.model_id = model_id or "eleven_multilingual_v2"  # デフォルトモデル
+        self.model_id = model_id or "eleven_v3"  # 🆕 最新v3モデルをデフォルトに
         self.base_url = "https://api.elevenlabs.io/v1"
+    
+    def normalize_japanese_text(self, text):
+        """日本語テキストを音声合成向けに正規化
+        
+        1. 京友禅用語辞書を適用（漢字→ひらがな）
+        2. 読み間違いやすい漢字を修正
+        
+        Args:
+            text: 元のテキスト
+        
+        Returns:
+            str: 正規化されたテキスト
+        """
+        normalized = text
+        
+        # 京友禅用語辞書を適用（長い語句から順に置換）
+        if kyoyuzen_terms:
+            sorted_terms = sorted(kyoyuzen_terms.items(), key=lambda x: len(x[0]), reverse=True)
+            for term, reading in sorted_terms:
+                normalized = normalized.replace(term, reading)
+        
+        return normalized
     
     def test_connection(self):
         """接続テスト"""
@@ -503,11 +544,16 @@ class ElevenLabsClient:
         similarity_boost = 0.75
         style = 0.0
         
+        # 🆕 日本語テキストを正規化（漢字→ひらがな変換）
+        normalized_text = self.normalize_japanese_text(text)
+        
         print(f"🎤 ElevenLabsに送信するテキスト:")
-        print(f"   {text[:100]}{'...' if len(text) > 100 else ''}")
+        print(f"   元: {text[:80]}{'...' if len(text) > 80 else ''}")
+        if normalized_text != text:
+            print(f"   正規化後: {normalized_text[:80]}{'...' if len(normalized_text) > 80 else ''}")
         
         data = {
-            'text': text,
+            'text': normalized_text,
             'model_id': self.model_id,
             'voice_settings': {
                 'stability': stability,
@@ -526,7 +572,7 @@ class ElevenLabsClient:
             )
             
             if response.status_code == 200:
-                print(f"✅ ElevenLabs音声生成成功: {len(response.content)} bytes")
+                print(f"✅ ElevenLabs音声生成成功: {len(response.content)} bytes (モデル: {self.model_id})")
                 return response.content
             else:
                 error_msg = f"ElevenLabs API Error: {response.status_code} - {response.text}"
@@ -690,6 +736,9 @@ def initialize_system():
     
     print("🚀 システム初期化中...")
     
+    # 京友禅用語辞書を読み込み
+    load_kyoyuzen_terms()
+    
     # OpenAI API初期化
     api_key = os.getenv('OPENAI_API_KEY')
     if not api_key:
@@ -708,7 +757,7 @@ def initialize_system():
     # 🆕 ElevenLabs初期化（日本語用 - 最優先）
     elevenlabs_key = os.getenv('ELEVENLABS_API_KEY')
     elevenlabs_voice_id = os.getenv('ELEVENLABS_VOICE_ID', '21m00Tcm4TlvDq8ikWAM')
-    elevenlabs_model_id = os.getenv('ELEVENLABS_MODEL_ID', 'eleven_multilingual_v2')
+    elevenlabs_model_id = os.getenv('ELEVENLABS_MODEL_ID', 'eleven_v3')  # 🆕 v3をデフォルトに
     elevenlabs_enabled = os.getenv('ELEVENLABS_ENABLED', 'false').lower() == 'true'
     
     if elevenlabs_enabled and elevenlabs_key:
