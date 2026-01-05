@@ -34,6 +34,20 @@ except ImportError:
     print("⚠️ Pillow library not installed - quiz reward image will use fallback")
     Image = None
 
+# アンケートシステム (Googleスプレッドシート連携)
+try:
+    from survey_integration import SurveyManager, SURVEY_QUESTIONS
+    survey_manager = SurveyManager()
+    print(f"✅ アンケートシステム初期化: enabled={survey_manager.enabled}")
+except ImportError as e:
+    print(f"⚠️ アンケートシステムのインポートエラー: {e}")
+    survey_manager = None
+    SURVEY_QUESTIONS = {'ja': [], 'en': []}
+except Exception as e:
+    print(f"⚠️ アンケートシステム初期化エラー: {e}")
+    survey_manager = None
+    SURVEY_QUESTIONS = {'ja': [], 'en': []}
+
 # ====== 初期設定 ======
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -1771,10 +1785,10 @@ def handle_request_quiz_proposal(data):
     session_id = request.sid
     language = data.get('language', 'ja')
     
-    # 提案メッセージ
+    # 提案メッセージ（クイズ+アンケートで報酬）
     proposal_text = {
-        'ja': '理解度レベルがMAXになりました！クイズに挑戦して全問正解したら素敵なプレゼントがもらえるよ！クイズに挑戦しますか？',
-        'en': 'Your understanding level is MAX! Challenge the quiz and get a special present if you answer all correctly! Will you try?'
+        'ja': '理解度レベルがMAXになりました！クイズとアンケートに答えてくれたら素敵なプレゼントがもらえるよ！挑戦しますか？',
+        'en': 'Your understanding level is MAX! Answer the quiz and survey to get a special present! Will you try?'
     }
     
     message = proposal_text.get(language, proposal_text['ja'])
@@ -2040,10 +2054,10 @@ def send_quiz_final_result(session_id, language, score):
     all_correct = score == 3
     
     if all_correct:
-        # 全問正解（🎯 修正: メッセージ文言を仕様に合わせる）
+        # 全問正解（🎯 修正: アンケートへの誘導メッセージ）
         result_text = {
-            'ja': 'コングラチュレーション！おめでとうございます！全問正解したあなたに特別なプレゼントです！',
-            'en': 'Congratulations! Perfect score! Here\'s a special present for you!'
+            'ja': 'すごい！全問正解です！最後にアンケートに答えてくれたら、素敵なプレゼントをお渡しします！',
+            'en': 'Amazing! All correct! Please answer a quick survey to receive your special present!'
         }
         emotion = 'happy'
         
@@ -2054,6 +2068,7 @@ def send_quiz_final_result(session_id, language, score):
             visitor_data[visitor_id]['relationship_level'] = 5  # Masterレベル
         
         session_info['quiz_completed'] = True
+        session_info['quiz_score'] = score  # スコアを保存（アンケート送信時に使用）
         
     else:
         # 不正解あり
@@ -2076,15 +2091,64 @@ def send_quiz_final_result(session_id, language, score):
     if session_id in quiz_sessions:
         del quiz_sessions[session_id]
     
-    # 現在のクライアントに送信
+    # 現在のクライアントに送信（全問正解時は showSurvey: true を追加）
     emit('quiz_final_result', {
         'message': message,
         'emotion': emotion,
         'audio': audio_data,
-        'allCorrect': all_correct
+        'allCorrect': all_correct,
+        'showSurvey': all_correct  # 全問正解時はアンケートを表示
     })
     
-    print(f"🏆 クイズ完了: Session={session_id}, Score={score}/3")
+    print(f"🏆 クイズ完了: Session={session_id}, Score={score}/3, ShowSurvey={all_correct}")
+
+
+# ====== 📋 アンケート関連ハンドラ ======
+@socketio.on('get_survey_questions')
+def handle_get_survey_questions(data):
+    """アンケート質問を取得"""
+    language = data.get('language', 'ja')
+    questions = SURVEY_QUESTIONS.get(language, SURVEY_QUESTIONS['ja'])
+    emit('survey_questions', {'questions': questions})
+    print(f"📋 アンケート質問送信: 言語={language}, 質問数={len(questions)}")
+
+
+@socketio.on('submit_survey')
+def handle_submit_survey(data):
+    """アンケート回答を保存"""
+    session_id = request.sid
+    session_info = get_session_data(session_id)
+    visitor_id = session_info.get('visitor_id')
+    language = data.get('language', 'ja')
+    
+    # アンケートデータを構築
+    survey_data = {
+        'avatar_name': 'REI',
+        'visitor_id': visitor_id,
+        'quiz_score': session_info.get('quiz_score', 0),
+        'conversation_count': session_info.get('conversation_count', 0),
+        'q1': data.get('q1', ''),
+        'q2': data.get('q2', ''),
+        'q3': data.get('q3', ''),
+        'language': language
+    }
+    
+    # Googleスプレッドシートに保存
+    success = False
+    if survey_manager and survey_manager.enabled:
+        success = survey_manager.save_survey(survey_data)
+    else:
+        print("⚠️ アンケートシステムが無効のため、ローカルログのみ")
+        print(f"📋 アンケートデータ: {survey_data}")
+        success = True  # ローカルログは成功扱い
+    
+    # 結果を送信
+    emit('survey_submitted', {
+        'success': success,
+        'showReward': True  # アンケート完了後に報酬を表示
+    })
+    
+    print(f"📋 アンケート提出: Session={session_id}, Success={success}")
 
 # ====== システム初期化（モジュールロード時に実行） ======
 # Gunicorn経由でも確実に実行されるように、モジュールレベルで初期化

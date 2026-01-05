@@ -875,6 +875,9 @@
             socket.on('quiz_final_result', handleQuizFinalResult);
             // 🎯 追加: 次の問題リクエストのレスポンス（同じハンドラを再利用）
             socket.on('next_quiz_question', handleQuizQuestion);
+            // 🎯 新規追加: アンケート用Socket.IOイベントリスナー
+            socket.on('survey_questions', handleSurveyQuestions);
+            socket.on('survey_submitted', handleSurveySubmitted);
             // 🎯 新規追加: stage3サジェスチョンのレスポンス
             socket.on('stage3_suggestions', (data) => {
                 console.log('📋 stage3サジェスチョンを受信:', data.suggestions);
@@ -2951,7 +2954,7 @@
     }
 
     /**
-     * クイズ最終結果を受信して表示（🎯 修正: localStorage永続化追加）
+     * クイズ最終結果を受信して表示（🎯 修正: アンケート→報酬フロー対応）
      */
     function handleQuizFinalResult(data) {
         quizState.isActive = false;
@@ -2965,11 +2968,6 @@
             if (data.audio) {
                 startConversation('happy', data.audio);
             }
-            
-            // 報酬を表示
-            setTimeout(() => {
-                showQuizReward();
-            }, 2000);
             
             // 🎯 修正: クイズ完了フラグをlocalStorageに永続化
             quizState.hasCompletedQuiz = true;
@@ -2993,6 +2991,18 @@
                 domElements.relationshipExp.textContent = 'Master';
             }
             
+            // 🎯 修正: アンケートを表示（全問正解時のみ）
+            if (data.showSurvey) {
+                setTimeout(() => {
+                    showSurveyAfterQuiz();
+                }, 2000);
+            } else {
+                // アンケートがない場合は報酬を直接表示
+                setTimeout(() => {
+                    showQuizReward();
+                }, 2000);
+            }
+            
         } else {
             // 不正解あり
             const messageWrapper = addMessage(data.message, false, {});
@@ -3008,6 +3018,163 @@
                 showQuizRetryButtons(messageWrapper);
             }, 1000);
         }
+    }
+    
+    // ====== 📋 アンケートシステム ======
+    let surveyState = {
+        isActive: false,
+        questions: []
+    };
+    
+    /**
+     * クイズ全問正解後にアンケートを表示
+     */
+    function showSurveyAfterQuiz() {
+        console.log('📋 アンケートを開始します');
+        surveyState.isActive = true;
+        
+        // サーバーからアンケート質問を取得
+        if (socket && socket.connected) {
+            socket.emit('get_survey_questions', {
+                language: appState.currentLanguage
+            });
+        }
+    }
+    
+    /**
+     * アンケート質問受信ハンドラ
+     */
+    function handleSurveyQuestions(data) {
+        console.log('📋 アンケート質問を受信:', data.questions);
+        surveyState.questions = data.questions || [];
+        displaySurveyModal(surveyState.questions);
+    }
+    
+    /**
+     * アンケートモーダルを表示
+     */
+    function displaySurveyModal(questions) {
+        const isJapanese = appState.currentLanguage === 'ja';
+        
+        // 既存のモーダルを削除
+        const existingModal = document.getElementById('survey-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        // モーダルを作成
+        const modal = document.createElement('div');
+        modal.id = 'survey-modal';
+        modal.className = 'survey-modal';
+        modal.innerHTML = `
+            <div class="survey-modal-content">
+                <h2 class="survey-title">${isJapanese ? '📋 アンケート' : '📋 Survey'}</h2>
+                <p class="survey-subtitle">${isJapanese 
+                    ? 'ご協力をお願いします。回答後、特別なプレゼントをお渡しします！' 
+                    : 'Please help us. You will receive a special present after completing!'}</p>
+                <form id="survey-form">
+                    ${generateSurveyHtml(questions)}
+                    <button type="submit" class="survey-submit-button">
+                        ${isJapanese ? '送信してプレゼントを受け取る' : 'Submit and Get Present'}
+                    </button>
+                </form>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // フォーム送信ハンドラ
+        const form = document.getElementById('survey-form');
+        form.addEventListener('submit', handleSurveySubmit);
+    }
+    
+    /**
+     * アンケートのHTMLを生成
+     */
+    function generateSurveyHtml(questions) {
+        let html = '';
+        
+        questions.forEach((q, index) => {
+            html += `
+                <div class="survey-question">
+                    <p class="question-text">${index + 1}. ${q.question}</p>
+                    <div class="question-options">
+            `;
+            
+            q.options.forEach(opt => {
+                html += `
+                    <label class="option-label">
+                        <input type="radio" name="${q.id}" value="${opt.value}" required>
+                        <span>${opt.label}</span>
+                    </label>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </div>
+            `;
+        });
+        
+        return html;
+    }
+    
+    /**
+     * アンケート送信ハンドラ
+     */
+    function handleSurveySubmit(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const answers = {
+            q1: formData.get('q1'),
+            q2: formData.get('q2'),
+            q3: formData.get('q3'),
+            language: appState.currentLanguage
+        };
+        
+        console.log('📋 アンケート回答送信:', answers);
+        
+        // サーバーに送信
+        if (socket && socket.connected) {
+            socket.emit('submit_survey', answers);
+        }
+        
+        // モーダルを閉じる
+        closeSurvey();
+    }
+    
+    /**
+     * アンケート送信完了ハンドラ
+     */
+    function handleSurveySubmitted(data) {
+        console.log('📋 アンケート送信完了:', data);
+        surveyState.isActive = false;
+        
+        if (data.showReward) {
+            // 報酬を表示
+            const isJapanese = appState.currentLanguage === 'ja';
+            const thankYouMessage = isJapanese 
+                ? 'アンケートへのご協力ありがとうございます！特別なプレゼントをどうぞ！'
+                : 'Thank you for completing the survey! Here is your special present!';
+            
+            addMessage(thankYouMessage, false, { skipSound: true });
+            
+            setTimeout(() => {
+                showQuizReward();
+            }, 1000);
+        }
+    }
+    
+    /**
+     * アンケートモーダルを閉じる
+     */
+    function closeSurvey() {
+        const modal = document.getElementById('survey-modal');
+        if (modal) {
+            modal.remove();
+        }
+        surveyState.isActive = false;
     }
 
     /**

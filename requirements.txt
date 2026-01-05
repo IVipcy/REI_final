@@ -40,6 +40,11 @@ azure-cognitiveservices-speech==1.36.0
 # 画像処理（クイズ報酬画像用）
 Pillow==10.2.0
 
+# Google API（アンケート連携用）
+google-auth==2.27.0
+google-auth-oauthlib==1.2.0
+google-api-python-client==2.116.0
+
 # WebSocketサポート
 eventlet==0.33.3
 
